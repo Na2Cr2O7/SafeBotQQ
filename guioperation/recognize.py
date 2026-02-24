@@ -17,8 +17,8 @@ class Texts(object):
         return self.text + " " + str(self.bbox)
     def __len__(self):
         return len(self.text)
-    def get_center(self):
-        return (self.bbox[0]+self.bbox[2])/2, (self.bbox[1]+self.bbox[3])/2
+    def get_center(self,previousx=0,previousy=0):
+        return (self.bbox[0]+self.bbox[2])/2+previousx, (self.bbox[1]+self.bbox[3])/2+previousy
 
 
 def extract_all_text(img_base64: str) -> List[Texts]:
@@ -157,6 +157,7 @@ def extract_all_text_from_file(img_path: str, debug=False) -> List[Texts]:
     
     return texts
 
+from guioperation.InputEvent import click
 import guioperation.imageWin as imageWin
 
 i=configparser.ConfigParser()
@@ -164,15 +165,10 @@ i.read("config.ini",encoding='utf-8')
 width=i.getint('general','width')
 height=i.getint('general','height')
 scale=i.getfloat('general','scale')
-def extract_all_text_from_screenshot():
-    """从屏幕截图中提取所有文字"""
-    # 获取屏幕截图
-    screenshot = imageWin.fullScreenShot()
-    texts = extract_all_text_from_file('screenshot.bmp')
 import numpy as np
 from typing import List
 
-def match_template(src: str, target: str, threshold=0.9, debug=False) -> List[List[int, int]]:
+def match_template(src: str, target: str, threshold=0.9, debug=False) -> List[List[int, int]]: # type: ignore
     """
     模板匹配函数
     
@@ -236,6 +232,8 @@ def match_template(src: str, target: str, threshold=0.9, debug=False) -> List[Li
     return [list(pt) for pt in points]
 def match_expand_buttons():
     return match_template('screenshot.bmp','templates/more.png')
+def match_copy_buttons():
+    return match_template('screenshot.bmp','templates/copy.png')
 def similarity(image1, image2):
     diff = cv2.absdiff(image1, image2)
     gray_diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
@@ -249,6 +247,38 @@ def get_key_value(extracted_text_result_from_function_extract_all_text_from_scre
         if (texts.text).find(key) != -1:
             return extracted_text_result_from_function_extract_all_text_from_screenshot_or_extract_all_text_from_file[index+1]
     return Texts()
+def get_key_value_vertical(extracted_text_result_from_function_extract_all_text_from_screenshot_or_extract_all_text_from_file:List[Texts],key):
+    length=len(extracted_text_result_from_function_extract_all_text_from_screenshot_or_extract_all_text_from_file)
+    semi_length=length//2
+    for index,texts in enumerate(extracted_text_result_from_function_extract_all_text_from_screenshot_or_extract_all_text_from_file):
+        if (texts.text).find(key) != -1:
+            if index<semi_length:
+                return extracted_text_result_from_function_extract_all_text_from_screenshot_or_extract_all_text_from_file[index+semi_length]
+            else:
+                return extracted_text_result_from_function_extract_all_text_from_screenshot_or_extract_all_text_from_file[index-semi_length]
+    return Texts()
+
+def click_text(text):
+    if text=='':
+        return False
+    print('click text:',text)
+    imageWin.screenshot2(0,0,width,height)
+    found=False
+    for index, texts in enumerate    (extract_all_text_from_file('screenshot.bmp')):
+        if str(texts) in text or text in str(texts):
+            click(*texts.get_center())
+            found=True
+    return found
+def contains(text: str,image: str):
+    result=extract_all_text_from_file(image)
+    for texts in result:
+        if str(texts) in text or text in str(texts):
+            return True
+    return False
+def contains_text_on_screen(text: str):
+    imageWin.screenshot(0,0,width,height)
+    return contains(text,'screenshot.bmp')
+
 
 # ==================== 使用示例 ====================
 if __name__ == "__main__":

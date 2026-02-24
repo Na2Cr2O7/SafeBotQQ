@@ -1,10 +1,13 @@
 
+from guioperation.guiOperations import send_like_, send_message_
 from onebotserver import *  
 import uuid
 import logging
 import time
 import enum
 from log import logger
+import configparser
+import sqlcontroller
 
 
 try:
@@ -40,9 +43,22 @@ def send_message(detail_type: str, detail_id: str, message: str):
                 "data": {},
                 "message": "Missing message"
             }
-        
-        # TODO: 实际发送逻辑
-        message_id = str(uuid.uuid4())
+        try:
+            message_id=send_message_(detail_type, detail_id, message,timeout=60)
+        except FileNotFoundError as e:
+            return {
+                "status": "failed",
+                "retcode": 10004,
+                "data": {},
+                "message": str(e)
+            }
+        except TimeoutError as e:
+            return {
+                "status": "failed",
+                "retcode": 10004,
+                "data": {},
+                "message": str(e)
+            }
         
         return {
             "status": "ok",
@@ -77,23 +93,14 @@ def get_friend_list():
     获取好友列表
     返回 OneBot 12 标准格式
     """
+    userdb=sqlcontroller.UserDatabase()
+
     try:
-        # TODO: 从实际数据源获取好友列表
-        # 这里返回示例数据，实际使用时需要对接 QQ API 或数据库
         friend_list = [
-            {
-                "user_id": "123456",
-                "user_name": "我是大笨蛋",
-                "user_displayname": "",
-                "user_remark": "一个自称大笨蛋的人"
-            },
-            {
-                "user_id": "654321",
-                "user_name": "我是小笨蛋",
-                "user_displayname": "",
-                "user_remark": "一个自称小笨蛋的人"
-            }
         ]
+        data=userdb.get_all_users()
+        if data:
+            friend_list=[x.to_dict() for x in data]
         
         return {
             "status": "ok",
@@ -112,6 +119,7 @@ def get_friend_list():
         }
 def get_user_info(user_id: str):
     """获取用户信息"""
+
     try:
         if not user_id:
             return {
@@ -121,69 +129,71 @@ def get_user_info(user_id: str):
                 "message": "Missing user_id"
             }
         
-        # TODO: 从实际数据源获取，这里返回示例数据
+        userdb=sqlcontroller.UserDatabase()
+        user=userdb.get_user(user_id)
+        if user is None:
+            raise Exception("用户不存在")
         return {
             "status": "ok",
-            "retcode": 0,
+            "retcode": 0,   
             "data": {
-                "user_id": user_id,
-                "user_name": "我是大笨蛋",
-                "user_displayname": "",
-                "user_remark": "一个自称大笨蛋的人"
+                "user_id": user.user_id,
+                "user_name": user.user_name,
+                "user_displayname": user.user_displayname,
+                "user_remark": user.user_remark
             },
             "message": ""
         }
     except Exception as e:
         logger.error(f"Error in get_user_info: {e}")
         return {
-            "status": "failed",
+            "status": str(e),
             "retcode": 500,
             "data": {},
             "message": "Internal Error"
         }
-def get_group_info(group_id: str):
-    """获取群信息"""
-    try:
-        if not group_id:
-            return {
-                "status": "failed",
-                "retcode": 10004,
-                "data": {},
-                "message": "Missing group_id"
-            }
+# def get_group_info(group_id: str):
+#     """获取群信息"""
+#     try:
+#         if not group_id:
+#             return {
+#                 "status": "failed",
+#                 "retcode": 10004,
+#                 "data": {},
+#                 "message": "Missing group_id"
+#             }
         
-        # TODO: 从实际数据源获取，这里返回示例数据
-        return {
-            "status": "ok",
-            "retcode": 0,
-            "data": {
-                "group_id": group_id,
-                "group_name": "一群大笨蛋"
-            },
-            "message": ""
-        }
-    except Exception as e:
-        logger.error(f"Error in get_group_info: {e}")
-        return {
-            "status": "failed",
-            "retcode": 500,
-            "data": {},
-            "message": "Internal Error"
-        }
+#         db = sqlcontroller.GroupDatabase()
+#         group = db.get_group(group_id)
+#         if not group:
+#             return {
+#                 "status": "failed",
+#                 "retcode": 10005,
+#                 "data": {},
+#                 "message": "Group not found"
+#             }
+        
+#         return {
+#             "status": "ok",
+#             "retcode": 0,
+#             "data": group.to_dict(),
+#             "message": ""
+#         }
+#     except Exception as e:
+#         logger.error(f"Error in get_group_info: {e}")
+#         return {
+#             "status": "failed",
+#             "retcode": 500,
+#             "data": {},
+#             "message": "Internal Error"
+#         }
     
 def get_group_list():
     """获取群列表"""
     try:
-        # TODO: 从实际数据源获取，这里返回示例数据
-        group_list = [
-            {
-                "group_id": "123456",
-                "group_name": "一群大笨蛋"
-            },
-            {
-                "group_id": "654321",
-                "group_name": "一群大笨蛋2群"
-            }
+        db=sqlcontroller.GroupDatabase()
+        r=db.get_all_groups()
+        group_list = [ group.to_dict() for group in r
         ]
         
         return {
@@ -286,6 +296,7 @@ def upload_file(params: dict):
         }
 def get_msg(message_id: int):
     """获取消息详情"""
+    message_id_string=str(message_id)
     try:
         if not message_id:
             return {
@@ -295,18 +306,30 @@ def get_msg(message_id: int):
                 "message": "Missing message_id"
             }
         
-        # TODO: 从实际数据源获取，这里返回示例数据
+        db=sqlcontroller.PrivateMessageDB()
+        userDB=sqlcontroller.UserDatabase()
+        message=db.get_by_message_id(message_id_string)
+        if not message:
+            return {
+                "status": "failed",
+                "retcode": 10005,
+                "data": {},
+                "message": "Message not found"
+            }
+        nickname=userDB.get_user(message.user_id)
+        if nickname==None:
+            nickname=""
         return {
             "status": "ok",
             "retcode": 0,
             "data": {
-                "time": int(time.time()),
-                "message_type": "private",  # 或 "group"
+                "time": message.create_time,
+                "message_type": message.message_type,  
                 "message_id": message_id,
                 "real_id": message_id,
                 "sender": {
-                    "user_id": 123456,
-                    "nickname": "我是大笨蛋",
+                    "user_id": message.user_id,
+                    "nickname": nickname,
                     "sex": "unknown",
                     "age": 0
                 },
@@ -314,7 +337,7 @@ def get_msg(message_id: int):
                     {
                         "type": "text",
                         "data": {
-                            "text": "这是一条测试消息"
+                            "text": message.message
                         }
                     }
                 ]
@@ -345,6 +368,24 @@ def send_like(user_id: int, times: int = 1):
         # 限制次数 1-10
         times = max(1, min(10, int(times)))
         
+        try:
+            if len(str(user_id)) > 16:
+                raise FileNotFoundError("this user_id cannot be found COZ it's generated by md5")
+            send_like_(str(user_id), times)
+        except FileNotFoundError as e:
+            return {
+                "status": "user_id not found",
+                "retcode": 10005,
+                "data": {},
+                "message": str(e)
+            }
+        except TimeoutError as e:
+            return {
+                "status": "Timeout",
+                "retcode": 10006,
+                "data": {},
+                "message": str(e)
+            }
         # TODO: 调用实际点赞接口
         logger.info(f"Sending like to user {user_id}, times: {times}")
         
@@ -363,8 +404,10 @@ def send_like(user_id: int, times: int = 1):
             "data": {},
             "message": "Internal Error"
         }
-def get_group_member_list(group_id: int):
+def get_group_member_list(group_id: str):
     """获取群成员列表"""
+    group_id = str(group_id)
+
     try:
         if not group_id:
             return {
@@ -373,61 +416,28 @@ def get_group_member_list(group_id: int):
                 "data": [],
                 "message": "Missing group_id"
             }
-        
-        # TODO: 从实际数据源获取，这里返回示例数据
-        member_list = [
+        db=sqlcontroller.GroupMemberDatabase()
+        members = db.get_by_group(group_id)
+        member_list=[
             {
                 "group_id": group_id,
-                "user_id": 123456,
-                "nickname": "群主大大",
-                "card": "我是群主",
-                "sex": "male",
-                "age": 25,
-                "area": "中国",
-                "join_time": 1609459200,
-                "last_sent_time": int(time.time()),
-                "level": "LV6",
-                "role": "owner",
-                "unfriendly": False,
-                "title": "群主",
-                "title_expire_time": 0,
-                "card_changeable": False
-            },
-            {
-                "group_id": group_id,
-                "user_id": 654321,
-                "nickname": "管理员小明",
-                "card": "管理",
-                "sex": "female",
-                "age": 20,
-                "area": "北京",
-                "join_time": 1640995200,
-                "last_sent_time": int(time.time()) - 3600,
-                "level": "LV4",
-                "role": "admin",
-                "unfriendly": False,
-                "title": "管理员",
-                "title_expire_time": 0,
-                "card_changeable": True
-            },
-            {
-                "group_id": group_id,
-                "user_id": 111222,
-                "nickname": "普通成员",
-                "card": "",
-                "sex": "unknown",
+                "user_id": member.user_id,
+                "nickname":member.nickname,
+                "card": member.card,
+                "sex": "",
                 "age": 0,
                 "area": "",
-                "join_time": 1672531200,
-                "last_sent_time": int(time.time()) - 86400,
-                "level": "LV1",
-                "role": "member",
+                "join_time": int(time.time()),
+                "last_sent_time": int(time.time()),
+                "level": "0",
+                "role": "0",
                 "unfriendly": False,
-                "title": "",
+                "title": "0",
                 "title_expire_time": 0,
-                "card_changeable": True
-            }
+                "card_changeable": False
+            } for member in members
         ]
+
         
         return {
             "status": "ok",
@@ -492,23 +502,12 @@ def get_image(file: str):
 def get_status():
     """获取运行状态"""
     try:
-        # TODO: 实际检查 QQ 连接状态和各模块运行情况
-        # 这里返回示例状态
         return {
             "status": "ok",
             "retcode": 0,
             "data": {
                 "online": True,   # QQ 在线
                 "good": True,     # 状态正常
-                # 可自行添加其他字段
-                "stat": {
-                    "packet_received": 1000,
-                    "packet_sent": 500,
-                    "message_received": 800,
-                    "message_sent": 400,
-                    "lost_times": 0,
-                    "uptime": int(time.time()) - 1708660800
-                }
             },
             "message": ""
         }
@@ -535,7 +534,6 @@ def get_version_info():
                 "app_name": "OneBot-12-QQ",
                 "app_version": i.get('general', 'version', fallback='1.0.0'),
                 "protocol_version": "v11",
-                # 可自行添加其他字段
                 "onebot_version": "12",
                 "impl": "OneBot-12-QQ"
             },

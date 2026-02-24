@@ -128,6 +128,7 @@ def right_mouse_up() -> bool:
 def click(x: int, y: int) -> bool:
     """在 (x, y) 处执行左键点击"""
     lib = _load_dll()
+    x=int(x);y=int(y)
     return lib.Lclick(ctypes.c_uint(x), ctypes.c_uint(y))
 
 def dragFromTo0(x1: int, y1: int, x2: int, y2: int, duration: float = 0.1) -> bool:

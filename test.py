@@ -1,7 +1,8 @@
 import requests
 import json
 import time
-
+with open('debugText.txt','r',encoding='utf8') as f:
+    debug_str=f.read()
 # ==================== 配置 ====================
 BASE_URL = "http://127.0.0.1:5700"
 ACCESS_TOKEN = "aaaa"  # 如果 config.ini 中配置了 token，请填写
@@ -23,7 +24,7 @@ def test_action(action: str, params: dict = None, expect_success: bool = True):
     }
     
     try:
-        response = requests.post(url, headers=HEADERS, json=payload, timeout=5)
+        response = requests.post(url, headers=HEADERS, json=payload, timeout=300)
         result = response.json()
         
         status = "✅" if (result.get("status") == "ok") == expect_success else "❌"
@@ -69,45 +70,35 @@ def test_all():
     print("\n📌 【消息相关】")
     results["send_message_private"] = test_action(
         "send_message",
-        {"detail_type": "private", "user_id": "123456", "message": "测试消息"}
+        {"detail_type": "private", "user_id": "2", "message": debug_str}
     )
     results["send_message_group"] = test_action(
         "send_message",
-        {"detail_type": "group", "group_id": "123456", "message": "测试消息"}
+        {"detail_type": "group", "group_id": "1", "message": debug_str}
     )
     # OneBot 11 兼容
     results["send_private_msg"] = test_action(
         "send_private_msg",
-        {"user_id": 123456, "message": "测试消息"}
+        {"user_id": 123456, "message": debug_str}
     )
     results["send_group_msg"] = test_action(
         "send_group_msg",
-        {"group_id": 123456, "message": "测试消息"}
+        {"group_id": 123456, "message": debug_str}
     )
-    results["get_msg"] = test_action("get_msg", {"message_id": 12345})
+    results["get_msg"] = test_action("get_msg", {"message_id": 3})
     
     # --- 好友相关 ---
     print("\n📌 【好友相关】")
     results["get_friend_list"] = test_action("get_friend_list")
-    results["get_user_info"] = test_action("get_user_info", {"user_id": "123456"})
-    results["send_like"] = test_action("send_like", {"user_id": 123456, "times": 1})
+    results["get_user_info"] = test_action("get_user_info", {"user_id": "105791954147416676523398155614408602595116788773953082783429415200616832153853"})
+    results["send_like"] = test_action("send_like", {"user_id": 2, "times": 6})
     
     # --- 群组相关 ---
     print("\n📌 【群组相关】")
-    results["get_group_info"] = test_action("get_group_info", {"group_id": "123456"})
+    # results["get_group_info"] = test_action("get_group_info", {"group_id": "1035975470"})
     results["get_group_list"] = test_action("get_group_list")
-    results["get_group_member_list"] = test_action("get_group_member_list", {"group_id": "123456"})
+    results["get_group_member_list"] = test_action("get_group_member_list", {"group_id": "1"})
     
-    # --- 文件相关 ---
-    print("\n📌 【文件相关】")
-    results["upload_file_url"] = test_action(
-        "upload_file",
-        {"type": "url", "name": "test.jpg", "url": "https://example.com/test.jpg"}
-    )
-    results["get_image"] = test_action(
-        "get_image",
-        {"file": "6B4DE3DFD1BD271E3297859D41C530F5.jpg"}
-    )
     
     # --- 错误测试 ---
     print("\n📌 【错误测试】")

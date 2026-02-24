@@ -91,8 +91,11 @@ def screenshot(x, y, width, height):
     return not result == 1
 from time import sleep
 def screenshot2(x, y, width, height):
-    sleep(0.1)
-    return screenshot(x, y, width, height)
+    sleep(0.6)
+    result= screenshot(x, y, width, height)
+    sleep(0.6)
+    return result
+
 def fullScreenShot():
     result = dll.fullScreenshot()
     return not result == 1

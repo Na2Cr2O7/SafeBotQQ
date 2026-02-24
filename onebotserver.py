@@ -12,6 +12,7 @@ import configparser
 
 from co import *
 from log import logger
+from uniqueID import suid
 
 # 配置读取优化：增加异常处理
 try:
@@ -131,9 +132,10 @@ class OneBotAPIHandler(http.server.BaseHTTPRequestHandler):
                     message = params.get("message")
                     return_data = send_message("group", group_id, message)
                 case "get_self_info":
+                    version=i.get('general', 'version', fallback='1.0.0')
                     return_data['data'] = {
-                        "user_id": uuid.uuid4().int >> 64,
-                        "user_name": i.get('general', 'version', fallback='1.0.0'),
+                        "user_id": suid(version),
+                        "user_name":version,
                         "user_displayname": ""
                     }
                 case "get_friend_list":
@@ -142,10 +144,10 @@ class OneBotAPIHandler(http.server.BaseHTTPRequestHandler):
                     params = request_data.get("params", {})
                     user_id = params.get("user_id")
                     return_data = get_user_info(user_id)
-                case "get_group_info":
-                    params = request_data.get("params", {})
-                    group_id = params.get("group_id")
-                    return_data = get_group_info(group_id)
+                # case "get_group_info":
+                #     params = request_data.get("params", {})
+                #     group_id = params.get("group_id")
+                #     return_data = get_group_info(group_id)
                 case "get_group_list":
                     return_data = get_group_list()
                 case "upload_file":
@@ -165,10 +167,6 @@ class OneBotAPIHandler(http.server.BaseHTTPRequestHandler):
                     params = request_data.get("params", {})
                     group_id = params.get("group_id")
                     return_data = get_group_member_list(group_id)
-                case "get_image":
-                    params = request_data.get("params", {})
-                    file = params.get("file")
-                    return_data = get_image(file)
                 case "get_status":
                     return_data = get_status()
 
