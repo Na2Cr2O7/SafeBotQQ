@@ -90,12 +90,12 @@ def test_all():
     # --- 好友相关 ---
     print("\n📌 【好友相关】")
     results["get_friend_list"] = test_action("get_friend_list")
-    results["get_user_info"] = test_action("get_user_info", {"user_id": "105791954147416676523398155614408602595116788773953082783429415200616832153853"})
+    results["get_user_info"] = test_action("get_user_info", {"user_id": "1"})
     results["send_like"] = test_action("send_like", {"user_id": 2, "times": 6})
     
     # --- 群组相关 ---
     print("\n📌 【群组相关】")
-    # results["get_group_info"] = test_action("get_group_info", {"group_id": "1035975470"})
+    results["get_group_info"] = test_action("get_group_info", {"group_id": "1"})
     results["get_group_list"] = test_action("get_group_list")
     results["get_group_member_list"] = test_action("get_group_member_list", {"group_id": "1"})
     
