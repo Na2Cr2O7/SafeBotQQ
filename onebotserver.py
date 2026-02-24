@@ -144,10 +144,10 @@ class OneBotAPIHandler(http.server.BaseHTTPRequestHandler):
                     params = request_data.get("params", {})
                     user_id = params.get("user_id")
                     return_data = get_user_info(user_id)
-                # case "get_group_info":
-                #     params = request_data.get("params", {})
-                #     group_id = params.get("group_id")
-                #     return_data = get_group_info(group_id)
+                case "get_group_info":
+                    params = request_data.get("params", {})
+                    group_id = params.get("group_id")
+                    return_data = get_group_info(group_id)
                 case "get_group_list":
                     return_data = get_group_list()
                 case "upload_file":

@@ -404,6 +404,44 @@ def send_like(user_id: int, times: int = 1):
             "data": {},
             "message": "Internal Error"
         }
+def get_group_info(group_id):
+    group_id = str(group_id)
+
+    try:
+        if not group_id:
+            return {
+                "status": "failed",
+                "retcode": 10004,
+                "data": [],
+                "message": "Missing group_id"
+            }
+        db=sqlcontroller.GroupDatabase()
+        group=db.get_group(group_id)
+        if not group:
+            return {
+                "status": "failed",
+                "retcode": 10004,
+                "data": [],
+                "message": "not_found"
+            }        
+        return {
+            "status": "ok",
+            "retcode": 0,
+            "data": {
+                "group_id": group.group_id,
+                "group_name": group.group_name,
+            },
+            "message": ""
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in get_group_member_list: {e}")
+        return {
+            "status": "failed",
+            "retcode": 500,
+            "data": [],
+            "message": "Internal Error"
+        }
 def get_group_member_list(group_id: str):
     """获取群成员列表"""
     group_id = str(group_id)
